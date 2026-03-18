@@ -21,6 +21,7 @@ function UserManagement() {
   const [error, setError] = useState('')
   const [actionState, setActionState] = useState({ status: 'idle', message: '' })
   const [expandedUserId, setExpandedUserId] = useState(null)
+  const [editUser, setEditUser] = useState(null)
 
   const isSuperUser = useMemo(() => {
     const role = (currentUser?.role || '').toLowerCase()
@@ -58,6 +59,57 @@ function UserManagement() {
 
     load()
   }, [])
+
+  const handleBlockToggle = async (userId, blocked) => {
+    try {
+      setActionState({ status: 'loading', message: blocked ? 'Blocking user...' : 'Unblocking user...' })
+      const res = await fetch(`${API_BASE}/user/users/${userId}/block`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocked }),
+      })
+      if (!res.ok) throw new Error(`Block update failed (${res.status})`)
+      const updated = await res.json()
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)))
+      setActionState({ status: 'success', message: `User ${blocked ? 'blocked' : 'unblocked'}` })
+      setTimeout(() => setActionState({ status: 'idle', message: '' }), 1000)
+    } catch (err) {
+      setActionState({ status: 'error', message: err.message || 'Failed to update block status' })
+    }
+  }
+
+  const openEdit = (user) => {
+    setEditUser({
+      id: user.id,
+      username: user.username || '',
+      email: user.email || '',
+      phoneNumber: user.phoneNumber || '',
+      role: user.role || '',
+      jobTitle: user.jobTitle || '',
+      blocked: user.blocked || false,
+    })
+  }
+
+  const submitEdit = async (event) => {
+    event.preventDefault()
+    if (!editUser?.id) return
+    try {
+      setActionState({ status: 'loading', message: 'Updating user...' })
+      const res = await fetch(`${API_BASE}/user/users/${editUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editUser),
+      })
+      if (!res.ok) throw new Error(`Update failed (${res.status})`)
+      const updated = await res.json()
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)))
+      setEditUser(null)
+      setActionState({ status: 'success', message: 'User updated' })
+      setTimeout(() => setActionState({ status: 'idle', message: '' }), 1000)
+    } catch (err) {
+      setActionState({ status: 'error', message: err.message || 'Failed to update user' })
+    }
+  }
 
   const userStats = useMemo(() => {
     return users.map((user) => {
@@ -140,31 +192,44 @@ function UserManagement() {
           {userStats.map(({ user, posted, accepted, paidOut, earned }) => {
             const isExpanded = expandedUserId === user.id
             return (
-              <div key={user.id} className="user-card">
-                <div className="card-top">
-                  <div>
-                    <div className="user-name">
-                      {user.username || 'Unnamed'}{' '}
-                      <span className="role-chip">{user.role || 'User'}</span>
-                    </div>
-                    <div className="user-meta">
-                      <span>
-                        <i className="fas fa-envelope"></i> {user.email}
-                      </span>
-                      <span>
-                        <i className="fas fa-phone"></i> {user.phoneNumber || 'No phone'}
-                      </span>
-                    </div>
+            <div key={user.id} className="user-card">
+              <div className="card-top">
+                <div>
+                  <div className="user-name">
+                    {user.username || 'Unnamed'}{' '}
+                    <span className="role-chip">{user.role || 'User'}</span>
+                    {user.blocked && <span className="blocked-chip">Blocked</span>}
                   </div>
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
-                  >
-                    {isExpanded ? 'Hide details' : 'View details'}
-                  </button>
+                  <div className="user-meta">
+                    <span>
+                      <i className="fas fa-envelope"></i> {user.email}
+                    </span>
+                    <span>
+                      <i className="fas fa-phone"></i> {user.phoneNumber || 'No phone'}
+                    </span>
+                  </div>
                 </div>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
+                >
+                  {isExpanded ? 'Hide details' : 'View details'}
+                </button>
+              </div>
 
-                <div className="stat-row">
+              <div className="card-actions">
+                <button className="btn btn-secondary" onClick={() => openEdit(user)}>
+                  <i className="fas fa-pen"></i> Edit
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => handleBlockToggle(user.id, !user.blocked)}
+                >
+                  <i className="fas fa-ban"></i> {user.blocked ? 'Unblock' : 'Block'}
+                </button>
+              </div>
+
+              <div className="stat-row">
                   <div className="stat">
                     <div className="stat-label">Posted</div>
                     <div className="stat-value">{posted.length}</div>
@@ -248,6 +313,61 @@ function UserManagement() {
                 OK
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {editUser && (
+        <div
+          className="action-overlay"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setEditUser(null)
+          }}
+        >
+          <div className="action-box" style={{ maxWidth: '420px', width: '90%' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>Edit user</h3>
+            <form onSubmit={submitEdit} className="edit-form">
+              <label>Username</label>
+              <input
+                type="text"
+                value={editUser.username}
+                onChange={(e) => setEditUser((p) => ({ ...p, username: e.target.value }))}
+                required
+              />
+              <label>Email</label>
+              <input
+                type="email"
+                value={editUser.email}
+                onChange={(e) => setEditUser((p) => ({ ...p, email: e.target.value }))}
+                required
+              />
+              <label>Phone</label>
+              <input
+                type="text"
+                value={editUser.phoneNumber}
+                onChange={(e) => setEditUser((p) => ({ ...p, phoneNumber: e.target.value }))}
+              />
+              <label>Role</label>
+              <input
+                type="text"
+                value={editUser.role}
+                onChange={(e) => setEditUser((p) => ({ ...p, role: e.target.value }))}
+              />
+              <label>Job Title</label>
+              <input
+                type="text"
+                value={editUser.jobTitle}
+                onChange={(e) => setEditUser((p) => ({ ...p, jobTitle: e.target.value }))}
+              />
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditUser(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -3,6 +3,7 @@ import { useRecoilState, useSetRecoilState } from 'recoil'
 import './Profile.css'
 import { authState, defaultUserState, userState } from '../state/authAtoms'
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8888/api'
 const emptyEditForm = {
   firstName: '',
   lastName: '',
@@ -18,14 +19,32 @@ function Profile() {
   const [tasks, setTasks] = useState([])
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState(emptyEditForm)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewTask, setReviewTask] = useState(null)
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
+  const [loadingTasks, setLoadingTasks] = useState(true)
+  const [actionState, setActionState] = useState({ status: 'idle', message: '' })
   const isSuperUser = useMemo(() => {
     const role = (user?.role || '').toString().toLowerCase().replace(/[\s_-]+/g, ' ').trim()
     return role === 'super user' || role === 'superuser' || role === 'super admin' || role === 'super'
   }, [user?.role])
 
   useEffect(() => {
-    const storedTasks = JSON.parse(localStorage.getItem('pieceworks_tasks')) || []
-    setTasks(storedTasks)
+    const load = async () => {
+      setLoadingTasks(true)
+      try {
+        const res = await fetch(`${API_BASE}/tasks`)
+        if (!res.ok) throw new Error('Failed to load tasks')
+        const data = await res.json()
+        setTasks(Array.isArray(data) ? data : [])
+      } catch (err) {
+        console.error('Profile tasks load failed:', err.message || err)
+        setTasks([])
+      } finally {
+        setLoadingTasks(false)
+      }
+    }
+    load()
   }, [])
 
   const userKeys = useMemo(
@@ -94,6 +113,42 @@ function Profile() {
   const logout = () => {
     setAuth(false)
     setUser(defaultUserState)
+  }
+
+  const openReview = (task) => {
+    setReviewTask(task)
+    setReviewForm({ rating: 5, comment: '' })
+    setReviewOpen(true)
+  }
+
+  const submitReview = async (event) => {
+    event.preventDefault()
+    if (!reviewTask?.id) return
+    try {
+      setActionState({ status: 'loading', message: 'Submitting review...' })
+      const reviewForId =
+        reviewTask?.acceptedById && !Number.isNaN(Number(reviewTask.acceptedById))
+          ? Number(reviewTask.acceptedById)
+          : undefined
+      const res = await fetch(`${API_BASE}/tasks/${reviewTask.id}/review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rating: Number(reviewForm.rating),
+          comment: reviewForm.comment,
+          reviewBy: user?.email || user?.userId || user?.phoneNumber,
+          reviewForId,
+        }),
+      })
+      if (!res.ok) throw new Error(`Review failed (${res.status})`)
+      const updated = await res.json()
+      setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
+      setReviewOpen(false)
+      setActionState({ status: 'success', message: 'Review submitted' })
+      setTimeout(() => setActionState({ status: 'idle', message: '' }), 1000)
+    } catch (err) {
+      setActionState({ status: 'error', message: err.message || 'Review failed' })
+    }
   }
 
   if (!user || !user.email) {
@@ -240,7 +295,15 @@ function Profile() {
                 </div>
               ) : (
                 acceptedOnMyJobs.map((task) => (
-                  <JobCard key={task.id} task={task} showAcceptor />
+                  <JobCard
+                    key={task.id}
+                    task={task}
+                    showAcceptor
+                    canReview={
+                      task.status === 'Completed' && !task.reviewGiven && task.acceptedById
+                    }
+                    onReview={() => openReview(task)}
+                  />
                 ))
               )}
             </div>
@@ -317,11 +380,86 @@ function Profile() {
           </form>
         </div>
       </div>
+
+      <div
+        className={`modal ${reviewOpen ? 'active' : ''}`}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setReviewOpen(false)
+        }}
+      >
+        <div className="modal-content">
+          <button className="close-modal" onClick={() => setReviewOpen(false)}>
+            &times;
+          </button>
+          <h2>Rate the worker</h2>
+          {reviewTask && (
+            <form onSubmit={submitReview}>
+              <label>Task</label>
+              <input type="text" value={reviewTask.title} readOnly />
+              <label>Worker</label>
+              <input type="text" value={reviewTask.acceptedByName || 'Worker'} readOnly />
+              <label>Rating (1-5)</label>
+              <select
+                value={reviewForm.rating}
+                onChange={(event) =>
+                  setReviewForm((prev) => ({ ...prev, rating: event.target.value }))
+                }
+                required
+              >
+                {[5, 4, 3, 2, 1].map((r) => (
+                  <option key={r} value={r}>
+                    {r} stars
+                  </option>
+                ))}
+              </select>
+              <label>Comment (optional)</label>
+              <textarea
+                rows="3"
+                value={reviewForm.comment}
+                onChange={(event) =>
+                  setReviewForm((prev) => ({ ...prev, comment: event.target.value }))
+                }
+                placeholder="Describe the work quality, timeliness, etc."
+              ></textarea>
+              <button type="submit" className="btn btn-primary">
+                Submit review
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+
+      {actionState.status !== 'idle' && (
+        <div className="modal active">
+          <div className="action-box">
+            <div className="action-icon">
+              {actionState.status === 'loading' && <i className="fas fa-spinner fa-spin"></i>}
+              {actionState.status === 'success' && <i className="fas fa-check-circle"></i>}
+              {actionState.status === 'error' && <i className="fas fa-times-circle"></i>}
+            </div>
+            <div className="action-message">{actionState.message}</div>
+            {actionState.status !== 'loading' && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => setActionState({ status: 'idle', message: '' })}
+              >
+                OK
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function JobCard({ task, showAcceptedDetails = false, showAcceptor = false }) {
+function JobCard({
+  task,
+  showAcceptedDetails = false,
+  showAcceptor = false,
+  canReview = false,
+  onReview,
+}) {
   const statusKey = String(task.status || 'Open').toLowerCase().replace(/\s+/g, '-')
   const statusClass =
     statusKey === 'open'
@@ -377,6 +515,13 @@ function JobCard({ task, showAcceptedDetails = false, showAcceptor = false }) {
               <i className="fas fa-phone"></i> {task.acceptedByPhone}
             </span>
           )}
+        </div>
+      )}
+      {canReview && (
+        <div className="task-actions">
+          <button className="btn btn-primary" onClick={onReview}>
+            <i className="fas fa-star"></i> Review worker
+          </button>
         </div>
       )}
     </div>

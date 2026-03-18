@@ -713,6 +713,57 @@ userRouter.patch("/profile/update", updateUserProfileController);
 userRouter.post('/verify-email', verifyEmailController);
 userRouter.post('/resend-verification', verifyEmailController);
 userRouter.delete('/usersof/:userId', deleteUserController);
+userRouter.patch('/users/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const data = req.body;
+    const updated = await prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        jobTitle: true,
+        isEmailVerified: true,
+        blocked: true,
+      },
+    });
+    res.status(StatusCodes.OK).json(updated);
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Failed to update user",
+      error: error?.message || error,
+    });
+  }
+});
+
+userRouter.patch('/users/:id/block', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { blocked } = req.body;
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { blocked: Boolean(blocked) },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        blocked: true,
+      },
+    });
+    res.status(StatusCodes.OK).json(updated);
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Failed to update block status",
+      error: error?.message || error,
+    });
+  }
+});
 
 
 export default userRouter;

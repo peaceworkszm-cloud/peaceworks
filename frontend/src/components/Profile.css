@@ -407,6 +407,27 @@ body {
   background: transparent;
 }
 
+.action-box {
+  background: var(--white);
+  padding: 20px 22px;
+  border-radius: 12px;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  min-width: 260px;
+}
+
+.action-icon {
+  font-size: 2rem;
+  color: var(--primary-blue);
+  margin-bottom: 10px;
+}
+
+.action-message {
+  font-weight: 700;
+  color: var(--dark-gray);
+  margin-bottom: 12px;
+}
+
 @media (max-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr;

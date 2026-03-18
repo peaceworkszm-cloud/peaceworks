@@ -85,6 +85,16 @@
   margin-left: 6px;
 }
 
+.blocked-chip {
+  background: #ffe5e9;
+  color: #b02a37;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  margin-left: 6px;
+  border: 1px solid #f5c2c7;
+}
+
 .user-meta {
   display: flex;
   flex-wrap: wrap;
@@ -127,6 +137,13 @@
   font-size: 0.9rem;
   color: var(--medium-gray);
   margin-bottom: 8px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .tasks-breakdown {

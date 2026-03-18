@@ -65,4 +65,47 @@ taskRouter.delete("/:id", async (req: Request, res: Response) => {
   }
 });
 
+taskRouter.patch("/:id/review", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { rating, comment, reviewBy, reviewForId } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ message: "Rating must be between 1 and 5" });
+    }
+
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task) {
+      return res.status(StatusCodes.NOT_FOUND).json({ message: "Task not found" });
+    }
+
+    const acceptedAsNumber = Number(task.acceptedById);
+    const reviewForIdNumber = Number(reviewForId);
+    const finalReviewForId = Number.isFinite(reviewForIdNumber)
+      ? reviewForIdNumber
+      : Number.isFinite(acceptedAsNumber)
+        ? acceptedAsNumber
+        : null;
+
+    const updated = await prisma.task.update({
+      where: { id },
+      data: {
+        reviewRating: rating,
+        reviewComment: comment,
+        reviewBy,
+        reviewForId: finalReviewForId,
+        reviewGiven: true,
+        reviewAt: new Date(),
+      },
+    });
+
+    res.status(StatusCodes.OK).json(updated);
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Failed to submit review",
+      error: error?.message || error,
+    });
+  }
+});
+
 export default taskRouter;

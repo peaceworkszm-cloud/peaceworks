@@ -34,7 +34,10 @@ model User {
   location               String?
   isEmailVerified        Boolean   @default(false)
   emailVerificationToken String?
+  blocked                Boolean   @default(false)
   createdAt              DateTime  @default(now())
+
+  reviewsReceived        Task[]    @relation("TaskReviewFor")
 }
 
 model Task {
@@ -63,5 +66,12 @@ model Task {
   acceptedByEmail String?
   acceptedByPhone String?
   acceptedTimestamp String?
+  reviewRating    Int?
+  reviewComment   String?
+  reviewBy        String?
+  reviewForId     Int?
+  reviewFor       User?    @relation("TaskReviewFor", fields: [reviewForId], references: [id])
+  reviewGiven     Boolean  @default(false)
+  reviewAt        DateTime?
   createdAt       DateTime @default(now())
 }
