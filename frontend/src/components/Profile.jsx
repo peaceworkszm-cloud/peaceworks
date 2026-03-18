@@ -18,6 +18,10 @@ function Profile() {
   const [tasks, setTasks] = useState([])
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState(emptyEditForm)
+  const isSuperUser = useMemo(() => {
+    const role = (user?.role || '').toString().toLowerCase().replace(/[\s_-]+/g, ' ').trim()
+    return role === 'super user' || role === 'superuser' || role === 'super admin' || role === 'super'
+  }, [user?.role])
 
   useEffect(() => {
     const storedTasks = JSON.parse(localStorage.getItem('pieceworks_tasks')) || []
@@ -109,6 +113,16 @@ function Profile() {
           <a className="btn btn-outline" href="#/post">
             <i className="fas fa-plus"></i> Post job
           </a>
+          {isSuperUser && (
+            <>
+              <a className="btn btn-outline" href="#/tasks-admin">
+                <i className="fas fa-list"></i> Task list
+              </a>
+              <a className="btn btn-outline" href="#/users-admin">
+                <i className="fas fa-users"></i> Users
+              </a>
+            </>
+          )}
           <button className="btn btn-outline" onClick={logout}>
             <i className="fas fa-sign-out-alt"></i> Logout
           </button>

@@ -6,6 +6,8 @@ import AuthLoginSignup from './components/AuthLoginSignup'
 import Landing from './components/Landing'
 import PostPiecework from './components/PostPiecework'
 import Profile from './components/Profile'
+import TaskAdmin from './components/TaskAdmin'
+import UserManagement from './components/UserManagement'
 import { authState } from './state/authAtoms'
 
 function App() {
@@ -35,6 +37,14 @@ function App() {
 
   if (route === '/profile') {
     return <Profile />
+  }
+
+  if (route === '/tasks-admin') {
+    return <TaskAdmin />
+  }
+
+  if (route === '/users-admin') {
+    return <UserManagement />
   }
 
   return <Landing />

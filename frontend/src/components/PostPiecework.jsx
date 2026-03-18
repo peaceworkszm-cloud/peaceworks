@@ -21,6 +21,8 @@ function PostPiecework() {
   const [jobId, setJobId] = useState('')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [actionState, setActionState] = useState({ status: 'idle', message: '' })
   const [form, setForm] = useState({
     title: '',
     category: '',
@@ -72,20 +74,21 @@ function PostPiecework() {
       alert('You must be logged in to post a job.')
       return
     }
-    if (isUploading) {
-      alert('Please wait for the image upload to finish.')
+    if (isUploading || submitting) {
+      alert('Please wait for the current upload/action to finish.')
       return
     }
 
-    const task = {
-      id: jobId || generateJobId(),
+    const payload = {
+      publicId: jobId || generateJobId(),
       status: form.status,
       title: form.title,
       category: form.category,
       location: form.location,
       date: form.date,
-      startTime: form.startTime || 'Flexible',
-      endTime: form.endTime || 'Flexible',
+      time: form.startTime || form.time || '',
+      startTime: form.startTime || '',
+      endTime: form.endTime || '',
       offerPrice: form.offerPrice,
       unitDef: form.unitDef,
       estEarning: form.estEarning || '',
@@ -98,13 +101,29 @@ function PostPiecework() {
       acceptedTimestamp: form.acceptedTimestamp || null,
     }
 
-    const stored = localStorage.getItem('pieceworks_tasks')
-    const tasks = stored ? JSON.parse(stored) : []
-    tasks.push(task)
-    localStorage.setItem('pieceworks_tasks', JSON.stringify(tasks))
+    const submitTask = async () => {
+      try {
+        setSubmitting(true)
+        setActionState({ status: 'loading', message: 'Creating task...' })
+        const res = await fetch(`${API_BASE}/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) throw new Error(`Create failed (${res.status})`)
+        setActionState({ status: 'success', message: 'Task created successfully' })
+        setTimeout(() => {
+          setActionState({ status: 'idle', message: '' })
+          window.location.hash = '#/'
+        }, 1200)
+      } catch (err) {
+        setActionState({ status: 'error', message: err.message || 'Failed to create task' })
+      } finally {
+        setSubmitting(false)
+      }
+    }
 
-    alert('Piecework posted successfully! It will appear in the task list.')
-    window.location.hash = '#/'
+    submitTask()
   }
 
   return (
@@ -419,10 +438,32 @@ function PostPiecework() {
         </div>
 
         <hr />
-        <button type="submit" className="btn-submit" disabled={isUploading}>
+        <button type="submit" className="btn-submit" disabled={isUploading || submitting}>
           <i className="fas fa-cloud-upload-alt"></i> Post Piecework Now
         </button>
       </form>
+
+      {actionState.status !== 'idle' && (
+        <div className="action-overlay">
+          <div className="action-box">
+            <div className="action-icon">
+              {actionState.status === 'loading' && <i className="fas fa-spinner fa-spin"></i>}
+              {actionState.status === 'success' && <i className="fas fa-check-circle"></i>}
+              {actionState.status === 'error' && <i className="fas fa-times-circle"></i>}
+            </div>
+            <div className="action-message">{actionState.message}</div>
+            {actionState.status !== 'loading' && (
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={() => setActionState({ status: 'idle', message: '' })}
+              >
+                OK
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

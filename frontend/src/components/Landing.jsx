@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import './Landing.css'
-// import tasksData from '../data/tasks.json'
 import { userState } from '../state/authAtoms'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8888/api'
@@ -31,7 +30,7 @@ const faqItems = [
 
 function Landing() {
   const user = useRecoilValue(userState)
-  // const [tasks, setTasks] = useState(tasksData)
+  const [tasks, setTasks] = useState([])
   const [activeFaq, setActiveFaq] = useState(null)
   const isLoggedIn = Boolean(user?.userId || user?.email || user?.phoneNumber)
 
@@ -45,8 +44,8 @@ function Landing() {
           setTasks(data)
         }
       } catch (err) {
-        // keep fallback tasksData on failure
         console.error('Landing tasks load failed:', err.message || err)
+        setTasks([])
       }
     }
     loadTasks()
@@ -122,7 +121,7 @@ function Landing() {
       </nav>
 
       <section className="hero">
-        <div className="container">
+        <div className="hero-left">
           <div className="hero-content">
             <h1>Quick Cash for Everyday Tasks in Zambia</h1>
             <p>
@@ -140,114 +139,121 @@ function Landing() {
             </div>
           </div>
         </div>
+        <div className="hero-right" aria-hidden="true"></div>
       </section>
 
       <section className="tasks" id="tasks">
         <div className="container">
           <div className="tasks-header">
-            <h2>Available Pieceworks Near Youbb </h2>
+            <h2>Available Pieceworks Near You</h2>
             <a href="#tasks" className="view-all">
               View All Tasks <i className="fas fa-arrow-right"></i>
             </a>
           </div>
 
           <div className="tasks-list">
-            {tasks.map((task) => (
-              <div className="task-row" key={task.publicId || task.id}>
-                <div
-                  className="task-image"
-                  style={{ backgroundImage: `url('${task.image}')` }}
-                >
-                  <span className="task-category">{task.category}</span>
-                </div>
-                <div className="task-content">
-                  <div className="task-header-top">
-                    <span className="job-id">
-                      <i className="fas fa-hashtag"></i> {task.publicId || task.id}
-                    </span>
-                    <span
-                      className="job-status"
-                      style={
-                        task.statusTone === 'orange'
-                          ? { backgroundColor: 'var(--secondary-orange)' }
-                          : undefined
-                      }
-                    >
-                      <i
-                        className="fas fa-circle"
-                        style={{ fontSize: '0.4rem', marginRight: '4px' }}
-                      ></i>{' '}
-                      {task.status}
-                    </span>
+            {tasks.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--gray)', padding: '2rem 0' }}>
+                No tasks available right now. Check back soon!
+              </p>
+            ) : (
+              tasks.map((task) => (
+                <div className="task-row" key={task.publicId || task.id}>
+                  <div
+                    className="task-image"
+                    style={{ backgroundImage: `url('${task.image}')` }}
+                  >
+                    <span className="task-category">{task.category}</span>
                   </div>
-                  <div className="task-title-section">
-                    <h3 className="task-title">{task.title}</h3>
-                    <div className="price-block">
-                      <span className="offer-price">{task.offerPrice}</span>
-                      <span className="unit-def">{task.unitDef}</span>
-                      <span className="est-earning">{task.estEarning}</span>
+                  <div className="task-content">
+                    <div className="task-header-top">
+                      <span className="job-id">
+                        <i className="fas fa-hashtag"></i> {task.publicId || task.id}
+                      </span>
+                      <span
+                        className="job-status"
+                        style={
+                          task.statusTone === 'orange'
+                            ? { backgroundColor: 'var(--secondary-orange)' }
+                            : undefined
+                        }
+                      >
+                        <i
+                          className="fas fa-circle"
+                          style={{ fontSize: '0.4rem', marginRight: '4px' }}
+                        ></i>{' '}
+                        {task.status}
+                      </span>
+                    </div>
+                    <div className="task-title-section">
+                      <h3 className="task-title">{task.title}</h3>
+                      <div className="price-block">
+                        <span className="offer-price">{task.offerPrice}</span>
+                        <span className="unit-def">{task.unitDef}</span>
+                        <span className="est-earning">{task.estEarning}</span>
+                      </div>
+                    </div>
+                    <div className="task-meta-row">
+                      <span className="meta-item">
+                        <i className="far fa-calendar-alt"></i> {task.date}
+                      </span>
+                      <span className="meta-item">
+                        <i className="far fa-clock"></i> {task.time}
+                      </span>
+                      <span className="meta-item">
+                        <i className="fas fa-map-marker-alt"></i> {task.location}
+                      </span>
+                    </div>
+                    <div className="employer-row">
+                      <span className="employer-name">
+                        <i className="fas fa-user-circle"></i> {task.employerName}
+                      </span>
+                      <span className="employer-id">ID: {task.employerId}</span>
+                      <span className="verified-badge">
+                        <i className="fas fa-check-circle"></i> Verified
+                      </span>
+                    </div>
+                    <p className="task-short-desc">
+                      <i className="fas fa-info-circle"></i> {task.shortDesc}
+                    </p>
+                    <div className="task-actions">
+                      <button
+                        className="btn-accept"
+                        onClick={() => {
+                          const accepted = handleAccept(task.id)
+                          if (accepted) {
+                            alert(
+                              `You accepted: "${task.title}". The employer will be notified.`,
+                            )
+                          }
+                        }}
+                        disabled={task.acceptedNow}
+                      >
+                        <i className="fas fa-check"></i> Accept
+                      </button>
+                      <button className="btn-decline" onClick={() => handleDecline(task.id)}>
+                        <i className="fas fa-times"></i> Decline
+                      </button>
+                      <span
+                        className="accepted-timestamp"
+                        style={
+                          task.acceptedNow
+                            ? { background: 'rgba(46,139,87,0.2)' }
+                            : undefined
+                        }
+                      >
+                        <i
+                          className={
+                            task.acceptedNow ? 'fas fa-check-circle' : 'fas fa-clock'
+                          }
+                        ></i>{' '}
+                        Accepted: {task.accepted}
+                      </span>
                     </div>
                   </div>
-                  <div className="task-meta-row">
-                    <span className="meta-item">
-                      <i className="far fa-calendar-alt"></i> {task.date}
-                    </span>
-                    <span className="meta-item">
-                      <i className="far fa-clock"></i> {task.time}
-                    </span>
-                    <span className="meta-item">
-                      <i className="fas fa-map-marker-alt"></i> {task.location}
-                    </span>
-                  </div>
-                  <div className="employer-row">
-                    <span className="employer-name">
-                      <i className="fas fa-user-circle"></i> {task.employerName}
-                    </span>
-                    <span className="employer-id">ID: {task.employerId}</span>
-                    <span className="verified-badge">
-                      <i className="fas fa-check-circle"></i> Verified
-                    </span>
-                  </div>
-                  <p className="task-short-desc">
-                    <i className="fas fa-info-circle"></i> {task.shortDesc}
-                  </p>
-                  <div className="task-actions">
-                    <button
-                      className="btn-accept"
-                      onClick={() => {
-                        const accepted = handleAccept(task.id)
-                        if (accepted) {
-                          alert(
-                            `You accepted: "${task.title}". The employer will be notified.`,
-                          )
-                        }
-                      }}
-                      disabled={task.acceptedNow}
-                    >
-                      <i className="fas fa-check"></i> Accept
-                    </button>
-                    <button className="btn-decline" onClick={() => handleDecline(task.id)}>
-                      <i className="fas fa-times"></i> Decline
-                    </button>
-                    <span
-                      className="accepted-timestamp"
-                      style={
-                        task.acceptedNow
-                          ? { background: 'rgba(46,139,87,0.2)' }
-                          : undefined
-                      }
-                    >
-                      <i
-                        className={
-                          task.acceptedNow ? 'fas fa-check-circle' : 'fas fa-clock'
-                        }
-                      ></i>{' '}
-                      Accepted: {task.accepted}
-                    </span>
-                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </section>
