@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import './Profile.css'
 import { authState, defaultUserState, userState } from '../state/authAtoms'
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8888/api'
+import { API_BASE } from '../config/api'
 const emptyEditForm = {
   firstName: '',
   lastName: '',

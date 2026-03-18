@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import './TaskAdmin.css'
 import { userState } from '../state/authAtoms'
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8888/api'
+import { API_BASE } from '../config/api'
 const EMPTY_FILTERS = { text: '', user: '', taskId: '' }
 
 const statusOptions = ['Open', 'In Progress', 'Accepted', 'Completed', 'Closed', 'Canceled']

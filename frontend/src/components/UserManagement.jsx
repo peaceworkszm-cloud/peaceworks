@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import './UserManagement.css'
 import { userState } from '../state/authAtoms'
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8888/api'
+import { API_BASE } from '../config/api'
 
 const parsePrice = (value) => {
   if (!value) return 0

@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import './PostPiecework.css'
 import { useRecoilValue } from 'recoil'
 import { userState } from '../state/authAtoms'
+import { API_BASE } from '../config/api'
 
 const DEFAULT_IMAGE =
   'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=600'
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8888/api'
 
 function generateJobId() {
   const now = new Date()

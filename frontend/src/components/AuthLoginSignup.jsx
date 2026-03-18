@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { useSetRecoilState } from 'recoil'
 import './AuthLoginSignup.css'
 import { authState, defaultUserState, userState } from '../state/authAtoms'
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8888/api'
+import { API_BASE } from '../config/api'
 
 const normalizeUser = (payload) => ({
   ...defaultUserState,
